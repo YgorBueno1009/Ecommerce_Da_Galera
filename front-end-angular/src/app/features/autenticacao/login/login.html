@@ -1,7 +1,6 @@
 <section class="acesso" aria-labelledby="login-titulo">
   <header class="acesso__cabecalho">
     <h1 id="login-titulo">Entrar</h1>
-    <p>Mesmo acesso para clientes e administradores.</p>
   </header>
 
   <form class="acesso__formulario" [formGroup]="form" (ngSubmit)="entrar()" novalidate>
@@ -78,8 +77,5 @@
 
   <p class="acesso__rodape">
     Novo por aqui? <a class="acesso__link" routerLink="/auth/register">Criar conta</a>
-  </p>
-  <p class="acesso__rodape acesso__separador">
-    Administrador? Após entrar, você escolhe entre loja ou painel.
   </p>
 </section>

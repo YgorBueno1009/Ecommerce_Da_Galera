@@ -1,7 +1,8 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
+import { Sessao } from '../../../core/sessao/sessao';
 import { CadastroCliente } from './cadastro-cliente';
 
 describe('CadastroCliente', () => {
@@ -139,6 +140,39 @@ describe('CadastroCliente', () => {
 
     component.form.controls.email.setValue('outra@example.com');
     expect(component.form.controls.email.hasError('emailAlreadyRegistered')).toBeFalse();
+    httpTesting.verify();
+  });
+
+  it('navigates to the storefront after registration succeeds', () => {
+    const fixture = TestBed.createComponent(CadastroCliente);
+    const component = fixture.componentInstance;
+    const httpTesting = TestBed.inject(HttpTestingController);
+    const router = TestBed.inject(Router);
+    const sessao = TestBed.inject(Sessao);
+    const navigateSpy = spyOn(router, 'navigateByUrl').and.resolveTo(true);
+    spyOn(sessao, 'iniciar');
+
+    component.form.setValue({
+      fullName: 'Maria da Silva',
+      email: 'maria@example.com',
+      password: 'Senha-segura123!',
+      confirmPassword: 'Senha-segura123!',
+      documentNumber: '52998224725',
+      phone: '(11) 99999-9999',
+    });
+    component.submit();
+
+    httpTesting.expectOne('/auth/register').flush({
+      token: 'token',
+      user: {
+        id: 'user-id',
+        fullName: 'Maria da Silva',
+        email: 'maria@example.com',
+        role: 'CLIENTE',
+      },
+    });
+
+    expect(navigateSpy).toHaveBeenCalledOnceWith('/catalog/home');
     httpTesting.verify();
   });
 });

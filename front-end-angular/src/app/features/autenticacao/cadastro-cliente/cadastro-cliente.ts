@@ -9,7 +9,7 @@ import {
   ValidatorFn,
   Validators,
 } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Sessao, UsuarioSessao } from '../../../core/sessao/sessao';
 
 type DocumentType = 'cpf' | 'cnpj';
@@ -121,6 +121,7 @@ export class CadastroCliente {
   // OnPush: a resposta do HTTP não marca a tela para atualizar sozinha.
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly sessao = inject(Sessao);
+  private readonly router = inject(Router);
 
   documentType: DocumentType = 'cpf';
   passwordVisible = false;
@@ -288,6 +289,7 @@ export class CadastroCliente {
           this.registrationComplete = true;
           this.changeDetector.markForCheck();
           console.log('[Cadastro] Cadastro concluído pelo servidor.');
+          void this.router.navigateByUrl('/catalog/home');
         },
         error: (error: unknown) => {
           this.handleRegistrationError(error);
