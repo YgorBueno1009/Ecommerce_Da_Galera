@@ -1,8 +1,7 @@
 <header class="cabecalho">
   <div class="cabecalho__conteudo">
-    <!-- TODO: definir o destino do clique na marca; por ora não é link. -->
-    <span class="cabecalho__marca">
-      <svg role="img" aria-label="Achei" width="152" height="32" viewBox="0 0 380 80">
+    <a routerLink="/catalog/home" class="cabecalho__marca" aria-label="Ir para a vitrine Achei">
+      <svg aria-hidden="true" width="152" height="32" viewBox="0 0 380 80">
         <rect x="0" y="8" width="64" height="64" rx="16" fill="#C2441C"></rect>
         <g fill="none" stroke="#FBF5EC" stroke-width="7" stroke-linecap="round">
           <circle cx="28" cy="36" r="13"></circle>
@@ -27,9 +26,14 @@
           <circle cx="248" cy="8" r="7" fill="#C2441C"></circle>
         </g>
       </svg>
-    </span>
+    </a>
 
-    <form class="cabecalho__busca" role="search" (submit)="buscar($event, termo.value)">
+    <form
+      class="cabecalho__busca"
+      role="search"
+      (submit)="buscar($event, termo.value)"
+      (focusout)="fecharSugestoesAoSair($event)"
+    >
       <svg
         aria-hidden="true"
         width="18"
@@ -50,8 +54,53 @@
         name="q"
         placeholder="Buscar produtos, marcas, SKU"
         aria-label="Buscar produtos"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-controls="sugestoes-produtos"
+        aria-haspopup="listbox"
+        [attr.aria-expanded]="mostrarSugestoes()"
+        [attr.aria-activedescendant]="idSugestaoAtiva()"
         enterkeyhint="search"
+        autocomplete="off"
+        (input)="atualizarSugestoes(termo.value)"
+        (focus)="atualizarSugestoes(termo.value)"
+        (keydown)="navegarSugestoes($event)"
       />
+      @if (mostrarSugestoes()) {
+        <div class="cabecalho__sugestoes">
+          @if (carregandoSugestoes()) {
+            <p class="cabecalho__sugestoes-aviso" role="status">Buscando produtos…</p>
+          } @else if (erroSugestoes()) {
+            <p class="cabecalho__sugestoes-aviso" role="alert">
+              Não foi possível carregar as sugestões.
+            </p>
+          } @else if (sugestoes().length) {
+            <ul id="sugestoes-produtos" role="listbox" aria-label="Sugestões de produtos">
+              @for (produto of sugestoes(); track produto.id; let indice = $index) {
+                <li>
+                  <a
+                    class="cabecalho__sugestao"
+                    [class.cabecalho__sugestao--ativa]="indiceSugestaoAtiva() === indice"
+                    [id]="'sugestao-produto-' + produto.id"
+                    role="option"
+                    [attr.aria-selected]="indiceSugestaoAtiva() === indice"
+                    [routerLink]="['/catalog/product', produto.slug]"
+                    (click)="selecionarSugestao()"
+                  >
+                    <span class="cabecalho__sugestao-produto">
+                      <span class="cabecalho__sugestao-nome">{{ produto.nome }}</span>
+                      <span class="cabecalho__sugestao-sku">SKU {{ produto.sku }}</span>
+                    </span>
+                    <span class="cabecalho__sugestao-preco">{{ produto.preco | moeda }}</span>
+                  </a>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="cabecalho__sugestoes-aviso" role="status">Nenhum produto encontrado.</p>
+          }
+        </div>
+      }
     </form>
 
     <nav class="cabecalho__acoes" aria-label="Conta">
