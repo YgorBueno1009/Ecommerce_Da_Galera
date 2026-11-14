@@ -17,6 +17,8 @@ export interface Produto {
   slug: string;
   nome: string;
   sku: string;
+  /** Coluna `description` em `ecommerce.products`. */
+  descricao?: string | null;
   preco: number;
   categoria: string;
   oferta: boolean;
@@ -25,4 +27,6 @@ export interface Produto {
   cor: string | null;
   tamanho: string | null;
   fichaTecnica: CaracteristicaProduto[];
+  /** Opcional: `attributes.imagemUrl` no Postgres; ausente usa placeholder automático. */
+  imagemUrl?: string | null;
 }

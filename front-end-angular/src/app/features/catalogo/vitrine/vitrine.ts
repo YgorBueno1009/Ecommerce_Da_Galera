@@ -1,11 +1,18 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { map } from 'rxjs';
 import { MoedaPipe } from '../../../shared/formatacao/formatacao';
 import { FRETE_GRATIS_A_PARTIR_DE } from '../../checkout/frete';
 import { CartaoProduto } from '../cartao-produto/cartao-produto';
 import { CatalogoService } from '../catalogo.service';
 import { Produto } from '../produto.model';
+
+/** Quantidade fixa de cards na seção Destaques. */
+const DESTAQUES_NA_VITRINE = 8;
+
+/** Busca a mais para compensar itens esgotados cortados pelo filtro de estoque. */
+const LIMITE_CONSULTA_CATALOGO = 32;
 
 @Component({
   selector: 'app-vitrine',
@@ -22,11 +29,16 @@ export class Vitrine {
 
   constructor() {
     inject(CatalogoService)
-      .listar({ limit: 8 })
-      .pipe(takeUntilDestroyed())
+      .listar({ limit: LIMITE_CONSULTA_CATALOGO })
+      .pipe(
+        map((produtos) =>
+          produtos.filter((produto) => produto.estoque > 0).slice(0, DESTAQUES_NA_VITRINE),
+        ),
+        takeUntilDestroyed(),
+      )
       .subscribe({
-        next: (produtos) => {
-          this.destaques.set(produtos);
+        next: (destaques) => {
+          this.destaques.set(destaques);
           this.carregando.set(false);
         },
         error: () => {

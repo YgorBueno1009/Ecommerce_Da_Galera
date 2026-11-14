@@ -28,6 +28,9 @@ interface FiltroAtivo {
 
 const VOLTAGENS = ['110v', '220v', 'Bivolt'];
 const TAMANHOS = ['Compacto', 'Médio', 'Grande'];
+const OPCOES_POR_PAGINA = [9, 18, 27] as const;
+
+type PorPagina = (typeof OPCOES_POR_PAGINA)[number];
 
 /** Sem acento e minúsculo, para "climatizacao" achar "Climatização". */
 function normalizar(texto: string): string {
@@ -72,6 +75,9 @@ export class Busca {
   protected readonly erro = signal(false);
   protected readonly filtrosAbertos = signal(false);
   protected readonly ordem = signal<Ordem>('relevancia');
+  protected readonly porPagina = signal<PorPagina>(9);
+  protected readonly pagina = signal(1);
+  protected readonly opcoesPorPagina = OPCOES_POR_PAGINA;
 
   protected readonly selecionados = {
     voltagem: signal<string[]>([]),
@@ -124,6 +130,51 @@ export class Busca {
     }
   });
 
+  protected readonly totalPaginas = computed(() => {
+    const total = this.resultados().length;
+    if (total === 0) {
+      return 0;
+    }
+    return Math.ceil(total / this.porPagina());
+  });
+
+  protected readonly paginaAtual = computed(() => {
+    const maximo = this.totalPaginas();
+    if (maximo === 0) {
+      return 1;
+    }
+    return Math.min(Math.max(this.pagina(), 1), maximo);
+  });
+
+  protected readonly resultadosPaginados = computed(() => {
+    const lista = this.resultados();
+    const tamanho = this.porPagina();
+    const atual = this.paginaAtual();
+    const inicio = (atual - 1) * tamanho;
+    return lista.slice(inicio, inicio + tamanho);
+  });
+
+  protected readonly resumoPaginacao = computed(() => {
+    const total = this.resultados().length;
+    if (total === 0) {
+      return null;
+    }
+    const quantidade = this.resultadosPaginados().length;
+    return { quantidade, total };
+  });
+
+  protected readonly paginasVisiveis = computed(() => {
+    const total = this.totalPaginas();
+    const atual = this.paginaAtual();
+    if (total <= 1) {
+      return [] as number[];
+    }
+    const inicio = Math.max(1, atual - 2);
+    const fim = Math.min(total, inicio + 4);
+    const ajustado = Math.max(1, fim - 4);
+    return Array.from({ length: fim - ajustado + 1 }, (_, indice) => ajustado + indice);
+  });
+
   protected readonly titulo = computed(() => {
     const termo = this.termo();
     if (termo) {
@@ -166,6 +217,15 @@ export class Busca {
         error: () => this.erroCategorias.set(true),
       });
 
+    effect(() => {
+      this.parametros();
+      this.ordem();
+      this.selecionados.voltagem();
+      this.selecionados.cor();
+      this.selecionados.tamanho();
+      this.pagina.set(1);
+    });
+
     effect((onCleanup) => {
       const { termo, categoria } = this.parametros();
       const sort: FiltrosCatalogo['sort'] = (
@@ -206,6 +266,31 @@ export class Busca {
 
   protected ordenar(evento: Event): void {
     this.ordem.set((evento.target as HTMLSelectElement).value as Ordem);
+  }
+
+  protected alterarPorPagina(evento: Event): void {
+    const valor = Number((evento.target as HTMLSelectElement).value);
+    if (!OPCOES_POR_PAGINA.includes(valor as PorPagina)) {
+      return;
+    }
+    this.porPagina.set(valor as PorPagina);
+    this.pagina.set(1);
+  }
+
+  protected irParaPagina(pagina: number): void {
+    const maximo = this.totalPaginas();
+    if (maximo === 0) {
+      return;
+    }
+    this.pagina.set(Math.min(Math.max(pagina, 1), maximo));
+  }
+
+  protected paginaAnterior(): void {
+    this.irParaPagina(this.paginaAtual() - 1);
+  }
+
+  protected proximaPagina(): void {
+    this.irParaPagina(this.paginaAtual() + 1);
   }
 
   protected limparFiltros(): void {

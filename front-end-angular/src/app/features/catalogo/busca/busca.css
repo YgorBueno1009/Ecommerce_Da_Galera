@@ -111,16 +111,30 @@
   min-width: 0;
 }
 
-.resultados__contagem {
-  margin: 6px 0 0;
-  font-size: 13px;
-}
-
 .resultados__barra {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 8px 12px;
+}
+
+.resultados__paginacao-centro {
+  display: flex;
+  flex: 1 1 200px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 16px;
+}
+
+.resultados__ordenar {
+  margin-left: auto;
+}
+
+.resultados__resumo-pagina {
+  margin: 0;
+  font-size: 13px;
+  text-align: center;
 }
 
 .ativos {
@@ -151,7 +165,6 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-left: auto;
   font-size: 13px;
 }
 
@@ -174,6 +187,12 @@
   list-style: none;
 }
 
+@media (min-width: 768px) {
+  .grade {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 .vazio {
   display: flex;
   flex-direction: column;
@@ -184,6 +203,64 @@
 
 .vazio p {
   margin: 0;
+}
+
+.paginacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 12px;
+  margin-top: 8px;
+}
+
+.paginacao__lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.paginacao__seta,
+.paginacao__numero {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--achei-linha-forte);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--achei-cacau);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.paginacao__numero {
+  min-width: 40px;
+  padding: 0 10px;
+}
+
+.paginacao__numero--ativa {
+  border-color: var(--achei-urucum);
+  background: var(--achei-urucum-claro);
+  font-weight: 600;
+}
+
+.paginacao__seta:hover:not(:disabled),
+.paginacao__numero:hover:not(.paginacao__numero--ativa) {
+  background: var(--achei-areia);
+}
+
+.paginacao__seta:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.paginacao__seta:focus-visible,
+.paginacao__numero:focus-visible {
+  outline: 2px solid var(--achei-urucum);
+  outline-offset: 2px;
 }
 
 /* Celular/tablet: filtros viram um painel que abre e fecha acima da lista. */
@@ -219,7 +296,12 @@
     gap: 12px;
   }
 
-  .ordenar {
+  .resultados__paginacao-centro {
+    flex-basis: 100%;
+    justify-content: center;
+  }
+
+  .resultados__ordenar {
     margin-left: 0;
   }
 }
