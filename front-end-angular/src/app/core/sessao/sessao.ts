@@ -9,6 +9,8 @@ export interface UsuarioSessao {
   role: 'CLIENTE' | 'ADMIN';
 }
 
+export type ContextoSessao = 'STORE' | 'ADMIN';
+
 interface SessaoSalva {
   token: string;
   usuario: UsuarioSessao;
@@ -28,6 +30,7 @@ export class Sessao {
 
   readonly usuario = computed(() => this.sessao()?.usuario ?? null);
   readonly token = computed(() => this.sessao()?.token ?? null);
+  readonly contexto = computed(() => obterContexto(this.sessao()?.token ?? null));
   readonly logado = computed(() => this.sessao() !== null);
 
   iniciar(token: string, usuario: UsuarioSessao): void {
@@ -86,10 +89,31 @@ function lerSessaoSalva(): SessaoSalva | null {
 
 /** Lê o `exp` do JWT só para descartar sessão vencida (a validação real é no back). */
 function tokenExpirado(token: string): boolean {
+  const payload = lerPayload(token);
+  return !payload || typeof payload['exp'] !== 'number' || payload['exp'] * 1000 <= Date.now();
+}
+
+function obterContexto(token: string | null): ContextoSessao | null {
+  if (!token) {
+    return null;
+  }
+  const payload = lerPayload(token);
+  return payload?.['context'] === 'STORE' || payload?.['context'] === 'ADMIN'
+    ? payload['context']
+    : null;
+}
+
+function lerPayload(token: string): Record<string, unknown> | null {
   try {
-    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-    return typeof payload.exp !== 'number' || payload.exp * 1000 <= Date.now();
+    const encoded = token.split('.')[1];
+    if (!encoded) {
+      return null;
+    }
+    return JSON.parse(atob(encoded.replace(/-/g, '+').replace(/_/g, '/'))) as Record<
+      string,
+      unknown
+    >;
   } catch {
-    return true;
+    return null;
   }
 }

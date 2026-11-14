@@ -26,6 +26,9 @@ export interface ItemPedido {
   sku: string;
   quantidade: number;
   precoUnitario: number;
+  /** Snapshot do checkout; pedidos antigos podem vir só com sku. */
+  slug?: string;
+  imagemUrl?: string | null;
 }
 
 export interface EventoStatus {

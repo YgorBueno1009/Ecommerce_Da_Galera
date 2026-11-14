@@ -1,13 +1,12 @@
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { Sessao } from '../../../core/sessao/sessao';
-import { RespostaSessao, mensagemDeErro } from '../acesso';
-
-type Contexto = 'STORE' | 'ADMIN';
-
-/** Rotas que já existem no Angular; o painel admin ainda não tem tela. */
-const ROTAS_PRONTAS = ['/catalog/home'];
+import {
+  rotaContextoDisponivel,
+  selecionarContextoSessao,
+} from '../../../core/sessao/contexto-sessao';
+import { ContextoSessao, Sessao } from '../../../core/sessao/sessao';
+import { mensagemDeErro } from '../acesso';
 
 @Component({
   selector: 'app-escolha-contexto',
@@ -23,7 +22,7 @@ export class EscolhaContexto {
   protected readonly primeiroNome = computed(
     () => this.sessao.usuario()?.fullName.trim().split(/\s+/)[0] ?? '',
   );
-  protected readonly enviando = signal<Contexto | null>(null);
+  protected readonly enviando = signal<ContextoSessao | null>(null);
   protected readonly erro = signal<string | null>(null);
   protected readonly aviso = signal<string | null>(null);
 
@@ -37,42 +36,32 @@ export class EscolhaContexto {
     }
   }
 
-  protected escolher(contexto: Contexto): void {
-    const token = this.sessao.token();
-    if (this.enviando() || !token) {
+  protected escolher(contexto: ContextoSessao): void {
+    if (this.enviando() || !this.sessao.token()) {
       return;
     }
     this.enviando.set(contexto);
     this.erro.set(null);
     this.aviso.set(null);
 
-    this.http
-      .post<RespostaSessao>(
-        '/auth/context',
-        { context: contexto },
-        { headers: { Authorization: `Bearer ${token}` } },
-      )
-      .subscribe({
-        next: ({ token: novoToken, user, redirectTo }) => {
-          this.enviando.set(null);
-          this.sessao.iniciar(novoToken, user);
-          if (ROTAS_PRONTAS.includes(redirectTo)) {
-            this.router.navigateByUrl(redirectTo);
-          } else {
-            // TODO: navegar para redirectTo quando as telas do painel existirem.
-            this.aviso.set(
-              'Você entrou no painel, mas as telas administrativas ainda não existem.',
-            );
-          }
-        },
-        error: (erro: unknown) => {
-          this.enviando.set(null);
-          this.erro.set(mensagemDeErro(erro, 'Não foi possível escolher o contexto.'));
-        },
-      });
+    selecionarContextoSessao(this.http, this.sessao, contexto).subscribe({
+      next: ({ redirectTo }) => {
+        this.enviando.set(null);
+        if (rotaContextoDisponivel(redirectTo)) {
+          this.router.navigateByUrl(redirectTo);
+        } else {
+          // TODO: navegar para redirectTo quando as telas do painel existirem.
+          this.aviso.set('Você entrou no painel, mas as telas administrativas ainda não existem.');
+        }
+      },
+      error: (erro: unknown) => {
+        this.enviando.set(null);
+        this.erro.set(mensagemDeErro(erro, 'Não foi possível escolher o contexto.'));
+      },
+    });
   }
 
   protected sair(): void {
-    this.sessao.sair().subscribe(() => this.router.navigate(['/auth/login']));
+    this.sessao.sair().subscribe(() => void this.router.navigate(['/catalog/home']));
   }
 }

@@ -1,11 +1,13 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { CATEGORIAS } from '../../features/catalogo/catalogo.service';
+import { CatalogoService } from '../../features/catalogo/catalogo.service';
+import { Categoria } from '../../features/catalogo/produto.model';
 
 /**
  * Barra de atalhos de categoria abaixo do cabeçalho (protótipo Achei).
  *
- * As categorias vêm do mock do catálogo (TODO: endpoint de `ecommerce.categories`).
+ * As categorias são carregadas do catálogo do servidor.
  */
 @Component({
   selector: 'app-barra-categorias',
@@ -15,5 +17,16 @@ import { CATEGORIAS } from '../../features/catalogo/catalogo.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BarraCategorias {
-  protected readonly categorias = CATEGORIAS;
+  protected readonly categorias = signal<Categoria[]>([]);
+  protected readonly erro = signal(false);
+
+  constructor() {
+    inject(CatalogoService)
+      .listarCategorias()
+      .pipe(takeUntilDestroyed())
+      .subscribe({
+        next: (categorias) => this.categorias.set(categorias),
+        error: () => this.erro.set(true),
+      });
+  }
 }

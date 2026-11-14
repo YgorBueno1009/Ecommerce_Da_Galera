@@ -29,6 +29,8 @@
 }
 
 .cabecalho__busca {
+  position: relative;
+  z-index: 2;
   display: flex;
   grid-area: busca;
   align-items: center;
@@ -68,6 +70,73 @@
   font-size: 14px;
 }
 
+.cabecalho__sugestoes {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  left: 0;
+  max-height: min(60vh, 360px);
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--achei-linha-forte);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgb(43 27 18 / 16%);
+  color: var(--achei-cacau);
+}
+
+.cabecalho__sugestoes ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cabecalho__sugestao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.cabecalho__sugestao:hover,
+.cabecalho__sugestao:focus-visible,
+.cabecalho__sugestao--ativa {
+  background: var(--achei-areia);
+}
+
+.cabecalho__sugestao-produto {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.cabecalho__sugestao-nome,
+.cabecalho__sugestao-sku {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cabecalho__sugestao-sku,
+.cabecalho__sugestoes-aviso {
+  color: var(--achei-cacau-suave);
+  font-size: 12px;
+}
+
+.cabecalho__sugestao-preco {
+  flex: 0 0 auto;
+  font-weight: 600;
+}
+
+.cabecalho__sugestoes-aviso {
+  margin: 0;
+  padding: 12px;
+}
+
 .cabecalho__link,
 .cabecalho__sair {
   display: inline-flex;
@@ -89,6 +158,11 @@
 .cabecalho__link:hover,
 .cabecalho__sair:hover:not(:disabled) {
   background: var(--achei-areia);
+}
+
+.cabecalho__link:disabled {
+  opacity: 0.6;
+  cursor: progress;
 }
 
 .cabecalho__link--ativo {
@@ -152,6 +226,22 @@
 .cabecalho button:focus-visible {
   outline: 2px solid var(--achei-urucum);
   outline-offset: 2px;
+}
+
+.cabecalho__contexto-aviso {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--achei-areia);
+  color: var(--achei-cacau);
+  font-size: 13px;
+  text-align: center;
+}
+
+.cabecalho__contexto-aviso--erro {
+  background: rgb(194 68 28 / 12%);
+  color: var(--achei-urucum);
 }
 
 /* No celular, "Meus pedidos", "Sair" e a saudação viram só ícone. */

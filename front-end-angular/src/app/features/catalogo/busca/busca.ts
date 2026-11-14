@@ -1,15 +1,22 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { CartaoProduto } from '../cartao-produto/cartao-produto';
 import {
-  CATEGORIAS,
   CatalogoService,
+  FiltrosCatalogo,
   buscarCategoria,
   slugsDaCategoria,
 } from '../catalogo.service';
-import { Produto, Tamanho, Voltagem } from '../produto.model';
+import { Categoria, Produto } from '../produto.model';
 
 type Ordem = 'relevancia' | 'menor-preco' | 'maior-preco';
 type GrupoFiltro = 'voltagem' | 'cor' | 'tamanho';
@@ -19,8 +26,11 @@ interface FiltroAtivo {
   remover: () => void;
 }
 
-const VOLTAGENS: Voltagem[] = ['110v', '220v', 'Bivolt'];
-const TAMANHOS: Tamanho[] = ['Compacto', 'Médio', 'Grande'];
+const VOLTAGENS = ['110v', '220v', 'Bivolt'];
+const TAMANHOS = ['Compacto', 'Médio', 'Grande'];
+const OPCOES_POR_PAGINA = [9, 18, 27] as const;
+
+type PorPagina = (typeof OPCOES_POR_PAGINA)[number];
 
 /** Sem acento e minúsculo, para "climatizacao" achar "Climatização". */
 function normalizar(texto: string): string {
@@ -49,15 +59,25 @@ export class Busca {
   );
 
   protected readonly termo = computed(() => this.parametros().termo);
-  protected readonly categoria = computed(() => buscarCategoria(this.parametros().categoria));
-  protected readonly categoriasRaiz = CATEGORIAS.filter((c) => !c.pai);
-  protected readonly subcategorias = (pai: string) => CATEGORIAS.filter((c) => c.pai === pai);
+  protected readonly categorias = signal<Categoria[]>([]);
+  protected readonly erroCategorias = signal(false);
+  protected readonly categoria = computed(() =>
+    buscarCategoria(this.parametros().categoria, this.categorias()),
+  );
+  protected readonly categoriasRaiz = computed(() =>
+    this.categorias().filter((categoria) => !categoria.pai),
+  );
+  protected readonly subcategorias = (pai: string) =>
+    this.categorias().filter((categoria) => categoria.pai === pai);
 
   private readonly produtos = signal<Produto[]>([]);
   protected readonly carregando = signal(true);
   protected readonly erro = signal(false);
   protected readonly filtrosAbertos = signal(false);
   protected readonly ordem = signal<Ordem>('relevancia');
+  protected readonly porPagina = signal<PorPagina>(9);
+  protected readonly pagina = signal(1);
+  protected readonly opcoesPorPagina = OPCOES_POR_PAGINA;
 
   protected readonly selecionados = {
     voltagem: signal<string[]>([]),
@@ -66,9 +86,11 @@ export class Busca {
   };
 
   protected readonly opcoes = computed(() => ({
-    voltagem: VOLTAGENS as string[],
-    cor: [...new Set(this.produtos().map((p) => p.cor))].sort(),
-    tamanho: TAMANHOS as string[],
+    voltagem: VOLTAGENS,
+    cor: [
+      ...new Set(this.produtos().flatMap((produto) => (produto.cor ? [produto.cor] : []))),
+    ].sort(),
+    tamanho: TAMANHOS,
   }));
 
   protected readonly grupos: { chave: GrupoFiltro; titulo: string }[] = [
@@ -80,19 +102,21 @@ export class Busca {
   protected readonly resultados = computed(() => {
     const termo = normalizar(this.termo());
     const categoria = this.categoria();
-    const slugs = categoria ? slugsDaCategoria(categoria.slug) : null;
+    const slugs = categoria ? slugsDaCategoria(categoria.slug, this.categorias()) : null;
     const voltagens = this.selecionados.voltagem();
     const cores = this.selecionados.cor();
     const tamanhos = this.selecionados.tamanho();
 
     const filtrados = this.produtos().filter((p) => {
-      const texto = normalizar(`${p.nome} ${p.sku} ${buscarCategoria(p.categoria)?.nome ?? ''}`);
+      const texto = normalizar(
+        `${p.nome} ${p.sku} ${buscarCategoria(p.categoria, this.categorias())?.nome ?? ''}`,
+      );
       return (
         (!termo || texto.includes(termo)) &&
         (!slugs || slugs.includes(p.categoria)) &&
-        (!voltagens.length || voltagens.includes(p.voltagem)) &&
-        (!cores.length || cores.includes(p.cor)) &&
-        (!tamanhos.length || tamanhos.includes(p.tamanho))
+        (!voltagens.length || (p.voltagem !== null && voltagens.includes(p.voltagem))) &&
+        (!cores.length || (p.cor !== null && cores.includes(p.cor))) &&
+        (!tamanhos.length || (p.tamanho !== null && tamanhos.includes(p.tamanho)))
       );
     });
 
@@ -104,6 +128,51 @@ export class Busca {
       default:
         return filtrados;
     }
+  });
+
+  protected readonly totalPaginas = computed(() => {
+    const total = this.resultados().length;
+    if (total === 0) {
+      return 0;
+    }
+    return Math.ceil(total / this.porPagina());
+  });
+
+  protected readonly paginaAtual = computed(() => {
+    const maximo = this.totalPaginas();
+    if (maximo === 0) {
+      return 1;
+    }
+    return Math.min(Math.max(this.pagina(), 1), maximo);
+  });
+
+  protected readonly resultadosPaginados = computed(() => {
+    const lista = this.resultados();
+    const tamanho = this.porPagina();
+    const atual = this.paginaAtual();
+    const inicio = (atual - 1) * tamanho;
+    return lista.slice(inicio, inicio + tamanho);
+  });
+
+  protected readonly resumoPaginacao = computed(() => {
+    const total = this.resultados().length;
+    if (total === 0) {
+      return null;
+    }
+    const quantidade = this.resultadosPaginados().length;
+    return { quantidade, total };
+  });
+
+  protected readonly paginasVisiveis = computed(() => {
+    const total = this.totalPaginas();
+    const atual = this.paginaAtual();
+    if (total <= 1) {
+      return [] as number[];
+    }
+    const inicio = Math.max(1, atual - 2);
+    const fim = Math.min(total, inicio + 4);
+    const ajustado = Math.max(1, fim - 4);
+    return Array.from({ length: fim - ajustado + 1 }, (_, indice) => ajustado + indice);
   });
 
   protected readonly titulo = computed(() => {
@@ -139,19 +208,54 @@ export class Busca {
   });
 
   constructor() {
-    inject(CatalogoService)
-      .listar()
+    const catalogo = inject(CatalogoService);
+    catalogo
+      .listarCategorias()
       .pipe(takeUntilDestroyed())
       .subscribe({
-        next: (produtos) => {
-          this.produtos.set(produtos);
-          this.carregando.set(false);
-        },
-        error: () => {
-          this.erro.set(true);
-          this.carregando.set(false);
-        },
+        next: (categorias) => this.categorias.set(categorias),
+        error: () => this.erroCategorias.set(true),
       });
+
+    effect(() => {
+      this.parametros();
+      this.ordem();
+      this.selecionados.voltagem();
+      this.selecionados.cor();
+      this.selecionados.tamanho();
+      this.pagina.set(1);
+    });
+
+    effect((onCleanup) => {
+      const { termo, categoria } = this.parametros();
+      const sort: FiltrosCatalogo['sort'] = (
+        {
+          relevancia: 'relevance',
+          'menor-preco': 'price-asc',
+          'maior-preco': 'price-desc',
+        } as const
+      )[this.ordem()];
+      this.carregando.set(true);
+      this.erro.set(false);
+
+      const subscription = catalogo
+        .listar({
+          q: termo,
+          category: categoria ?? undefined,
+          sort,
+        })
+        .subscribe({
+          next: (produtos) => {
+            this.produtos.set(produtos);
+            this.carregando.set(false);
+          },
+          error: () => {
+            this.erro.set(true);
+            this.carregando.set(false);
+          },
+        });
+      onCleanup(() => subscription.unsubscribe());
+    });
   }
 
   protected alternar(grupo: GrupoFiltro, valor: string): void {
@@ -162,6 +266,31 @@ export class Busca {
 
   protected ordenar(evento: Event): void {
     this.ordem.set((evento.target as HTMLSelectElement).value as Ordem);
+  }
+
+  protected alterarPorPagina(evento: Event): void {
+    const valor = Number((evento.target as HTMLSelectElement).value);
+    if (!OPCOES_POR_PAGINA.includes(valor as PorPagina)) {
+      return;
+    }
+    this.porPagina.set(valor as PorPagina);
+    this.pagina.set(1);
+  }
+
+  protected irParaPagina(pagina: number): void {
+    const maximo = this.totalPaginas();
+    if (maximo === 0) {
+      return;
+    }
+    this.pagina.set(Math.min(Math.max(pagina, 1), maximo));
+  }
+
+  protected paginaAnterior(): void {
+    this.irParaPagina(this.paginaAtual() - 1);
+  }
+
+  protected proximaPagina(): void {
+    this.irParaPagina(this.paginaAtual() + 1);
   }
 
   protected limparFiltros(): void {

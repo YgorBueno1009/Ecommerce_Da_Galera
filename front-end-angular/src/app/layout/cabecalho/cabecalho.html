@@ -1,8 +1,7 @@
 <header class="cabecalho">
   <div class="cabecalho__conteudo">
-    <!-- TODO: definir o destino do clique na marca; por ora não é link. -->
-    <span class="cabecalho__marca">
-      <svg role="img" aria-label="Achei" width="152" height="32" viewBox="0 0 380 80">
+    <a routerLink="/catalog/home" class="cabecalho__marca" aria-label="Ir para a vitrine Achei">
+      <svg aria-hidden="true" width="152" height="32" viewBox="0 0 380 80">
         <rect x="0" y="8" width="64" height="64" rx="16" fill="#C2441C"></rect>
         <g fill="none" stroke="#FBF5EC" stroke-width="7" stroke-linecap="round">
           <circle cx="28" cy="36" r="13"></circle>
@@ -27,9 +26,14 @@
           <circle cx="248" cy="8" r="7" fill="#C2441C"></circle>
         </g>
       </svg>
-    </span>
+    </a>
 
-    <form class="cabecalho__busca" role="search" (submit)="buscar($event, termo.value)">
+    <form
+      class="cabecalho__busca"
+      role="search"
+      (submit)="buscar($event, termo.value)"
+      (focusout)="fecharSugestoesAoSair($event)"
+    >
       <svg
         aria-hidden="true"
         width="18"
@@ -50,8 +54,53 @@
         name="q"
         placeholder="Buscar produtos, marcas, SKU"
         aria-label="Buscar produtos"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-controls="sugestoes-produtos"
+        aria-haspopup="listbox"
+        [attr.aria-expanded]="mostrarSugestoes()"
+        [attr.aria-activedescendant]="idSugestaoAtiva()"
         enterkeyhint="search"
+        autocomplete="off"
+        (input)="atualizarSugestoes(termo.value)"
+        (focus)="atualizarSugestoes(termo.value)"
+        (keydown)="navegarSugestoes($event)"
       />
+      @if (mostrarSugestoes()) {
+        <div class="cabecalho__sugestoes">
+          @if (carregandoSugestoes()) {
+            <p class="cabecalho__sugestoes-aviso" role="status">Buscando produtos…</p>
+          } @else if (erroSugestoes()) {
+            <p class="cabecalho__sugestoes-aviso" role="alert">
+              Não foi possível carregar as sugestões.
+            </p>
+          } @else if (sugestoes().length) {
+            <ul id="sugestoes-produtos" role="listbox" aria-label="Sugestões de produtos">
+              @for (produto of sugestoes(); track produto.id; let indice = $index) {
+                <li>
+                  <a
+                    class="cabecalho__sugestao"
+                    [class.cabecalho__sugestao--ativa]="indiceSugestaoAtiva() === indice"
+                    [id]="'sugestao-produto-' + produto.id"
+                    role="option"
+                    [attr.aria-selected]="indiceSugestaoAtiva() === indice"
+                    [routerLink]="['/catalog/product', produto.slug]"
+                    (click)="selecionarSugestao()"
+                  >
+                    <span class="cabecalho__sugestao-produto">
+                      <span class="cabecalho__sugestao-nome">{{ produto.nome }}</span>
+                      <span class="cabecalho__sugestao-sku">SKU {{ produto.sku }}</span>
+                    </span>
+                    <span class="cabecalho__sugestao-preco">{{ produto.preco | moeda }}</span>
+                  </a>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="cabecalho__sugestoes-aviso" role="status">Nenhum produto encontrado.</p>
+          }
+        </div>
+      }
     </form>
 
     <nav class="cabecalho__acoes" aria-label="Conta">
@@ -82,32 +131,90 @@
         </a>
       }
 
-      <a
-        routerLink="/checkout/cart"
-        routerLinkActive="cabecalho__link--ativo"
-        ariaCurrentWhenActive="page"
-        class="cabecalho__link"
-        [attr.aria-label]="rotuloCarrinho()"
-      >
-        <svg
-          aria-hidden="true"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-          stroke-linecap="round"
-          stroke-linejoin="round"
+      @if (mostrarCarrinho()) {
+        <a
+          routerLink="/checkout/cart"
+          routerLinkActive="cabecalho__link--ativo"
+          ariaCurrentWhenActive="page"
+          class="cabecalho__link"
+          [attr.aria-label]="rotuloCarrinho()"
         >
-          <path d="M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h9.2a1 1 0 0 0 1-.8L20 8H6"></path>
-          <circle cx="9" cy="20" r="1.4"></circle>
-          <circle cx="17" cy="20" r="1.4"></circle>
-        </svg>
-        @if (itensCarrinho() > 0) {
-          <span class="cabecalho__contador" aria-hidden="true">{{ itensCarrinho() }}</span>
-        }
-      </a>
+          <svg
+            aria-hidden="true"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h9.2a1 1 0 0 0 1-.8L20 8H6"></path>
+            <circle cx="9" cy="20" r="1.4"></circle>
+            <circle cx="17" cy="20" r="1.4"></circle>
+          </svg>
+          @if (itensCarrinho() > 0) {
+            <span class="cabecalho__contador" aria-hidden="true">{{ itensCarrinho() }}</span>
+          }
+        </a>
+      }
+
+      @if (logado() && mostrarIrParaAdmin()) {
+        <button
+          type="button"
+          class="cabecalho__link"
+          aria-label="Abrir painel administrativo"
+          [disabled]="trocandoContexto() !== null"
+          (click)="trocarContexto('ADMIN')"
+        >
+          <svg
+            aria-hidden="true"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="3" y="3" width="7" height="9" rx="1"></rect>
+            <rect x="14" y="3" width="7" height="5" rx="1"></rect>
+            <rect x="14" y="12" width="7" height="9" rx="1"></rect>
+            <rect x="3" y="16" width="7" height="5" rx="1"></rect>
+          </svg>
+          <span class="cabecalho__texto-opcional">{{
+            trocandoContexto() === 'ADMIN' ? 'Abrindo…' : 'Painel administrativo'
+          }}</span>
+        </button>
+      }
+      @if (logado() && mostrarVoltarParaLoja()) {
+        <button
+          type="button"
+          class="cabecalho__link"
+          aria-label="Voltar à loja"
+          [disabled]="trocandoContexto() !== null"
+          (click)="trocarContexto('STORE')"
+        >
+          <svg
+            aria-hidden="true"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M3 9l1.5-5h15L21 9M3 9h18M3 9v11h18V9M9 20v-6h6v6"></path>
+          </svg>
+          <span class="cabecalho__texto-opcional">{{
+            trocandoContexto() === 'STORE' ? 'Entrando…' : 'Voltar à loja'
+          }}</span>
+        </button>
+      }
 
       @if (logado()) {
         <span class="cabecalho__usuario">
@@ -171,5 +278,14 @@
         </a>
       }
     </nav>
+    @if (erroContexto() || avisoContexto()) {
+      <p
+        class="cabecalho__contexto-aviso"
+        [class.cabecalho__contexto-aviso--erro]="erroContexto()"
+        role="alert"
+      >
+        {{ erroContexto() ?? avisoContexto() }}
+      </p>
+    }
   </div>
 </header>

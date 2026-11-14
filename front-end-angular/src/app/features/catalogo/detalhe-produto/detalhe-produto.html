@@ -3,6 +3,9 @@
 } @else if (produto(); as produto) {
   <div class="detalhe">
     <nav class="trilha" aria-label="Trilha">
+      @if (erroCategorias()) {
+        <p class="aviso" role="status">Não foi possível carregar as categorias.</p>
+      }
       <ol>
         <li><a routerLink="/catalog/home">Início</a></li>
         @for (categoria of trilha(); track categoria.slug) {
@@ -17,33 +20,76 @@
     </nav>
 
     <div class="detalhe__colunas">
-      <div class="galeria" aria-label="Fotos do produto (ilustrativas)" role="img">
-        <div class="imagem-produto galeria__principal">
-          <svg
-            aria-hidden="true"
-            width="48"
-            height="48"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
+      <div class="galeria" #galeriaRaiz>
+        <div class="galeria__principal">
+          <img
+            class="galeria__foto"
+            [src]="imagemPrincipal()"
+            [alt]="produto.nome"
+            width="800"
+            height="800"
+            decoding="async"
+            (error)="aoErroImagemProduto($event)"
+          />
+        </div>
+
+        @if (descricaoExibida(); as descricao) {
+          <section
+            class="descricao cartao"
+            [class.descricao--visitante]="modoDescricaoVisitante()"
+            [class.descricao--expandida]="descricaoExpandida()"
+            aria-labelledby="descricao-titulo"
           >
-            <rect x="3" y="4" width="18" height="16" rx="2"></rect>
-            <circle cx="9" cy="10" r="2"></circle>
-            <path d="m21 17-5-5-9 8"></path>
-          </svg>
-        </div>
-        <div class="galeria__miniaturas" aria-hidden="true">
-          @for (miniatura of [1, 2, 3, 4]; track miniatura) {
-            <div class="imagem-produto galeria__miniatura"></div>
-          }
-        </div>
+            <div class="descricao__cabecalho">
+              <h2 id="descricao-titulo" class="descricao__titulo">Descrição do produto</h2>
+              @if (modoDescricaoVisitante() && mostrarBotaoDescricao()) {
+                <button
+                  type="button"
+                  class="descricao__alternar descricao__alternar--cabecalho botao botao--secundario botao--pequeno"
+                  [attr.aria-expanded]="descricaoExpandida()"
+                  aria-controls="descricao-texto"
+                  (click)="alternarDescricao()"
+                >
+                  {{ rotuloBotaoDescricao() }}
+                </button>
+              }
+            </div>
+            @if (!modoDescricaoVisitante() || descricaoExpandida()) {
+              <div
+                class="descricao__corpo"
+                [style.max-height.px]="
+                  !modoDescricaoVisitante() &&
+                  !descricaoExpandida() &&
+                  alturaMaximaDescricaoPx() !== null
+                    ? alturaMaximaDescricaoPx()
+                    : null
+                "
+              >
+                <p id="descricao-texto" #descricaoTexto class="descricao__texto">
+                  {{ descricao }}
+                </p>
+                @if (!modoDescricaoVisitante() && mostrarBotaoDescricao()) {
+                  <button
+                    type="button"
+                    class="descricao__alternar botao botao--secundario botao--pequeno"
+                    [attr.aria-expanded]="descricaoExpandida()"
+                    aria-controls="descricao-texto"
+                    (click)="alternarDescricao()"
+                  >
+                    {{ rotuloBotaoDescricao() }}
+                  </button>
+                }
+              </div>
+            }
+          </section>
+        }
       </div>
 
-      <div class="compra">
+      <div class="compra" #colunaCompra>
         <div>
+          @if (produto.oferta) {
+            <span class="compra__oferta">Oferta</span>
+          }
           <h1 class="compra__nome">{{ produto.nome }}</h1>
           <p class="compra__sku">SKU {{ produto.sku }}</p>
         </div>
@@ -70,6 +116,7 @@
           </span>
         }
 
+        @if (podeComprar()) {
         <div class="compra__acoes">
           <div class="quantidade" role="group" aria-label="Quantidade">
             <button
@@ -160,18 +207,21 @@
           </svg>
           Frete calculado no checkout
         </p>
+        }
 
-        <section class="ficha cartao" aria-labelledby="ficha-titulo">
-          <h2 id="ficha-titulo" class="ficha__titulo">Ficha técnica</h2>
-          <dl class="ficha__lista">
-            @for (item of produto.fichaTecnica; track item.rotulo) {
-              <div class="ficha__linha">
-                <dt>{{ item.rotulo }}</dt>
-                <dd>{{ item.valor }}</dd>
-              </div>
-            }
-          </dl>
-        </section>
+        @if (fichaExibicao().length) {
+          <section class="ficha cartao" aria-labelledby="ficha-titulo">
+            <h2 id="ficha-titulo" class="ficha__titulo">Ficha técnica</h2>
+            <dl class="ficha__lista">
+              @for (item of fichaExibicao(); track item.rotulo) {
+                <div class="ficha__linha">
+                  <dt>{{ item.rotulo }}</dt>
+                  <dd>{{ item.valor }}</dd>
+                </div>
+              }
+            </dl>
+          </section>
+        }
       </div>
     </div>
   </div>

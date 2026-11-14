@@ -1,10 +1,10 @@
 /**
- * As telas do Angular usam as mesmas rotas do back (/auth/login, /auth/register...),
- * que também são caminhos da API do Node. Navegação do navegador (GET de HTML)
- * fica com o Angular; o resto (chamadas da API) vai para o Node.
+ * API do Node na porta 3000. Com o dev server Vite (Angular 20+), use `/**` nas
+ * rotas — `/catalog` sozinho não encaminha `/catalog/categories`.
+ * GET com Accept HTML continua no Angular (vitrine, busca, etc.).
  */
 export default {
-  '/auth': {
+  '/auth/**': {
     target: 'http://localhost:3000',
     secure: false,
     changeOrigin: true,
@@ -14,5 +14,21 @@ export default {
       }
       return undefined;
     },
+  },
+  '/catalog/**': {
+    target: 'http://localhost:3000',
+    secure: false,
+    changeOrigin: true,
+    bypass: (req) => {
+      if (req.method === 'GET' && req.headers.accept?.includes('text/html')) {
+        return '/index.html';
+      }
+      return undefined;
+    },
+  },
+  '/cart/**': {
+    target: 'http://localhost:3000',
+    secure: false,
+    changeOrigin: true,
   },
 };

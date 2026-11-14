@@ -8,6 +8,7 @@
 .carrinho__colunas {
   display: flex;
   flex-wrap: wrap;
+  align-items: flex-start;
   gap: 24px;
 }
 
@@ -31,15 +32,31 @@
 
 /* Lista de itens: grade de 5 colunas no desktop, cartão empilhado no celular. */
 .itens {
-  flex: 999 1 560px;
+  flex: 1 1 560px;
   min-width: 0;
-  overflow: hidden;
+  align-self: flex-start;
 }
 
 .itens__lista {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* Cabeçalho + até 5 linhas visíveis; do 6º item em diante, rolagem vertical. */
+.itens__lista--com-scroll {
+  --altura-cabecalho-itens: 2.75rem;
+  --altura-linha-item: 5.25rem;
+  max-height: calc(var(--altura-cabecalho-itens) + 5 * var(--altura-linha-item));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.itens__lista--com-scroll .itens__cabecalho {
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .itens__cabecalho,
@@ -79,6 +96,9 @@
   flex: none;
   width: 56px;
   height: 56px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--achei-linha-suave);
 }
 
 .item__texto {
@@ -176,6 +196,11 @@
 @media (max-width: 767px) {
   .itens__cabecalho {
     display: none;
+  }
+
+  .itens__lista--com-scroll {
+    --altura-cabecalho-itens: 0rem;
+    --altura-linha-item: 8.5rem;
   }
 
   .item {

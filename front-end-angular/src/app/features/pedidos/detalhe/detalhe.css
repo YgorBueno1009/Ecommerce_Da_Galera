@@ -174,15 +174,12 @@
 }
 
 .itens__imagem {
-  display: flex;
   flex: none;
-  align-items: center;
-  justify-content: center;
   width: 48px;
   height: 48px;
   border-radius: 14px;
+  object-fit: cover;
   background: var(--achei-linha-suave);
-  color: var(--achei-linha-forte);
 }
 
 .itens__info {

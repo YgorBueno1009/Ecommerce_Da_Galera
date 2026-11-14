@@ -1,4 +1,7 @@
 <nav class="categorias" aria-label="Categorias">
+  @if (erro()) {
+    <p role="status">Não foi possível carregar as categorias.</p>
+  }
   <ul class="categorias__lista">
     <li>
       <a routerLink="/catalog/search" class="categorias__todas">
@@ -20,7 +23,7 @@
         Todas as categorias
       </a>
     </li>
-    @for (categoria of categorias; track categoria.slug) {
+    @for (categoria of categorias(); track categoria.slug) {
       <li>
         <a
           routerLink="/catalog/search"

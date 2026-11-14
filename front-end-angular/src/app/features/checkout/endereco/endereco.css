@@ -144,6 +144,10 @@
   font-weight: 600;
 }
 
+.campo__obrigatorio {
+  color: var(--achei-erro);
+}
+
 .campo input,
 .campo select {
   width: 100%;

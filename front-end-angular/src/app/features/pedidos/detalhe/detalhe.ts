@@ -1,11 +1,17 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { catchError, map, of, switchMap, tap } from 'rxjs';
+import { catchError, forkJoin, map, of, switchMap, tap } from 'rxjs';
 import { DataPipe, MoedaPipe } from '../../../shared/formatacao/formatacao';
+import { CatalogoService } from '../../catalogo/catalogo.service';
+import {
+  aoErroImagemProduto,
+  urlImagemProduto,
+} from '../../catalogo/imagem-produto';
 import {
   codigoPedido,
   ETAPAS_PEDIDO,
+  ItemPedido,
   Pedido,
   ROTULO_METODO_PAGAMENTO,
   ROTULO_STATUS_PAGAMENTO,
@@ -32,8 +38,19 @@ interface EtapaLinhaDoTempo {
 })
 export class Detalhe {
   private readonly pedidosService = inject(PedidosService);
+  private readonly catalogo = inject(CatalogoService);
 
   private readonly rota = inject(ActivatedRoute);
+
+  protected readonly aoErroImagemProduto = aoErroImagemProduto;
+
+  protected imagemItem(item: ItemPedido): string {
+    return urlImagemProduto(
+      { slug: item.slug ?? '', imagemUrl: item.imagemUrl },
+      96,
+      96,
+    );
+  }
 
   /** Parâmetro de rota `:orderId` (UUID do pedido). */
   private readonly id = signal('');
@@ -99,7 +116,12 @@ export class Detalhe {
         }),
         // catchError por dentro: um pedido não encontrado não pode matar o
         // paramMap, senão trocar de id na mesma tela para de carregar.
-        switchMap((id) => this.pedidosService.buscar(id).pipe(catchError(() => of(null)))),
+        switchMap((id) =>
+          this.pedidosService.buscar(id).pipe(
+            switchMap((pedido) => this.comImagensItens(pedido)),
+            catchError(() => of(null)),
+          ),
+        ),
         takeUntilDestroyed(),
       )
       .subscribe((pedido) => {
@@ -107,5 +129,29 @@ export class Detalhe {
         this.erro.set(pedido === null);
         this.carregando.set(false);
       });
+  }
+
+  /** Pedidos salvos antes do snapshot de imagem: resolve pelo SKU no catálogo. */
+  private comImagensItens(pedido: Pedido) {
+    const atualizacoes = pedido.itens.map((item) => {
+      if (item.imagemUrl?.trim() || item.slug) {
+        return of(item);
+      }
+      return this.catalogo.listar({ q: item.sku, limit: 8 }).pipe(
+        map((produtos) => {
+          const produto = produtos.find((p) => p.sku === item.sku) ?? produtos[0];
+          if (!produto) {
+            return item;
+          }
+          return {
+            ...item,
+            slug: produto.slug,
+            imagemUrl: produto.imagemUrl ?? null,
+          };
+        }),
+        catchError(() => of(item)),
+      );
+    });
+    return forkJoin(atualizacoes).pipe(map((itens) => ({ ...pedido, itens })));
   }
 }

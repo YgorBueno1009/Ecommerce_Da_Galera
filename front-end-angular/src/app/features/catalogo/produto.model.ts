@@ -6,9 +6,6 @@ export interface Categoria {
   pai?: string;
 }
 
-export type Voltagem = '110v' | '220v' | 'Bivolt';
-export type Tamanho = 'Compacto' | 'Médio' | 'Grande';
-
 export interface CaracteristicaProduto {
   rotulo: string;
   valor: string;
@@ -20,12 +17,16 @@ export interface Produto {
   slug: string;
   nome: string;
   sku: string;
+  /** Coluna `description` em `ecommerce.products`. */
+  descricao?: string | null;
   preco: number;
   categoria: string;
   oferta: boolean;
   estoque: number;
-  voltagem: Voltagem;
-  cor: string;
-  tamanho: Tamanho;
+  voltagem: string | null;
+  cor: string | null;
+  tamanho: string | null;
   fichaTecnica: CaracteristicaProduto[];
+  /** Opcional: `attributes.imagemUrl` no Postgres; ausente usa placeholder automático. */
+  imagemUrl?: string | null;
 }

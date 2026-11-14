@@ -1,4 +1,7 @@
 <div class="busca">
+  @if (erroCategorias()) {
+    <p class="aviso" role="alert">Não foi possível carregar as categorias.</p>
+  }
   <aside class="filtros cartao" aria-label="Filtros">
     <h2 class="filtros__cabecalho">Filtros</h2>
     <button
@@ -35,7 +38,7 @@
       <nav class="filtros__grupo" aria-label="Categoria">
         <span class="filtros__titulo">Categoria</span>
         <ul class="filtros__categorias">
-          @for (raiz of categoriasRaiz; track raiz.slug) {
+          @for (raiz of categoriasRaiz(); track raiz.slug) {
             <li>
               <a
                 routerLink="/catalog/search"
@@ -93,14 +96,7 @@
   </aside>
 
   <section class="resultados" aria-labelledby="busca-titulo">
-    <div>
-      <h1 id="busca-titulo" class="titulo-pagina">{{ titulo() }}</h1>
-      @if (!carregando() && !erro()) {
-        <p class="resultados__contagem texto-suave" role="status">
-          {{ resultados().length }} {{ resultados().length === 1 ? 'produto' : 'produtos' }}
-        </p>
-      }
-    </div>
+    <h1 id="busca-titulo" class="titulo-pagina">{{ titulo() }}</h1>
 
     <div class="resultados__barra">
       @if (filtrosAtivos().length) {
@@ -131,7 +127,22 @@
           }
         </ul>
       }
-      <label class="ordenar texto-suave">
+      <div class="resultados__paginacao-centro">
+        @if (resumoPaginacao(); as resumo) {
+          <p class="resultados__resumo-pagina texto-suave" role="status">
+            Mostrando {{ resumo.quantidade }}
+            {{ resumo.quantidade === 1 ? 'produto' : 'produtos' }} de {{ resumo.total }}
+          </p>
+        }
+        <label class="ordenar texto-suave">
+          <select [value]="porPagina()" (change)="alterarPorPagina($event)">
+            @for (opcao of opcoesPorPagina; track opcao) {
+              <option [value]="opcao">{{ opcao }}</option>
+            }
+          </select>
+        </label>
+      </div>
+      <label class="ordenar resultados__ordenar texto-suave">
         Ordenar
         <select [value]="ordem()" (change)="ordenar($event)">
           <option value="relevancia">Mais relevantes</option>
@@ -161,10 +172,46 @@
       </div>
     } @else {
       <ul class="grade">
-        @for (produto of resultados(); track produto.id) {
+        @for (produto of resultadosPaginados(); track produto.id) {
           <li><app-cartao-produto [produto]="produto" /></li>
         }
       </ul>
+
+      @if (totalPaginas() > 1) {
+        <nav class="paginacao" aria-label="Paginação de produtos">
+            <button
+              type="button"
+              class="paginacao__seta"
+              [disabled]="paginaAtual() <= 1"
+              (click)="paginaAnterior()"
+            >
+              Anterior
+            </button>
+            <ol class="paginacao__lista">
+              @for (numero of paginasVisiveis(); track numero) {
+                <li>
+                  <button
+                    type="button"
+                    class="paginacao__numero"
+                    [class.paginacao__numero--ativa]="numero === paginaAtual()"
+                    [attr.aria-current]="numero === paginaAtual() ? 'page' : null"
+                    (click)="irParaPagina(numero)"
+                  >
+                    {{ numero }}
+                  </button>
+                </li>
+              }
+            </ol>
+            <button
+              type="button"
+              class="paginacao__seta"
+              [disabled]="paginaAtual() >= totalPaginas()"
+              (click)="proximaPagina()"
+            >
+              Próxima
+            </button>
+        </nav>
+      }
     }
   </section>
 </div>

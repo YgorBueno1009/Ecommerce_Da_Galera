@@ -7,7 +7,11 @@
     "build": "tsc -p tsconfig.json",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
-    "test": "tsx --test src/modules/auth/register/register.schema.test.ts src/modules/auth/register/register.conflict.test.ts src/modules/auth/login/login.schema.test.ts src/modules/auth/password/password-reset.schema.test.ts src/modules/auth/password/password-reset.routes.test.ts src/modules/auth/context/context.schema.test.ts src/modules/auth/session/session-token.test.ts"
+    "test": "tsx --test src/modules/auth/register/register.schema.test.ts src/modules/auth/register/register.conflict.test.ts src/modules/auth/login/login.schema.test.ts src/modules/auth/password/password-reset.schema.test.ts src/modules/auth/password/password-reset.routes.test.ts src/modules/auth/context/context.schema.test.ts src/modules/auth/session/session-token.test.ts src/modules/catalog/catalog.schema.test.ts src/modules/cart/cart.schema.test.ts",
+    "db:seed": "tsx src/database/run-mock-seed.ts",
+    "db:imagem-urls": "tsx src/database/run-imagem-urls.ts",
+    "db:descriptions": "tsx src/database/run-product-descriptions.ts",
+    "verify:password-reset-infra": "node scripts/verify-password-reset-infra.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

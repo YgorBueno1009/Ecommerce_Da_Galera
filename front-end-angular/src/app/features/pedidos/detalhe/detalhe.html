@@ -64,22 +64,16 @@
           <ul class="itens">
             @for (item of pedido.itens; track item.produtoId) {
               <li class="itens__item">
-                <span class="itens__imagem" aria-hidden="true">
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <rect x="3" y="4" width="18" height="16" rx="2"></rect>
-                    <circle cx="9" cy="10" r="2"></circle>
-                    <path d="m21 17-5-5-9 8"></path>
-                  </svg>
-                </span>
+                <img
+                  class="itens__imagem"
+                  [src]="imagemItem(item)"
+                  [alt]="item.nome"
+                  width="96"
+                  height="96"
+                  loading="lazy"
+                  decoding="async"
+                  (error)="aoErroImagemProduto($event)"
+                />
                 <span class="itens__info">
                   <span class="itens__nome">{{ item.nome }}</span>
                   <span class="itens__sku">{{ item.sku }}</span>
