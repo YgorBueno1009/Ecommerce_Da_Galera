@@ -109,13 +109,17 @@ export class PagamentoService {
       subtotal,
       frete,
       total: subtotal + frete,
-      itens: this.carrinho.itens().map(({ produtoId, nome, sku, quantidade, precoUnitario }) => ({
-        produtoId,
-        nome,
-        sku,
-        quantidade,
-        precoUnitario,
-      })),
+      itens: this.carrinho.itens().map(
+        ({ produtoId, nome, sku, slug, imagemUrl, quantidade, precoUnitario }) => ({
+          produtoId,
+          nome,
+          sku,
+          slug,
+          imagemUrl: imagemUrl ?? null,
+          quantidade,
+          precoUnitario,
+        }),
+      ),
       endereco: { apelido, cep, rua, numero, complemento, bairro, cidade, uf },
       pagamento: { metodo, status: aprovado ? 'APPROVED' : 'PENDING' },
       historico: aprovado
