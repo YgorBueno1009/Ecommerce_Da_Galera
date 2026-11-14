@@ -1,8 +1,10 @@
 /**
- * As chamadas da API vão para o Node; rotas de navegação do navegador ficam com o Angular.
+ * API do Node na porta 3000. Com o dev server Vite (Angular 20+), use `/**` nas
+ * rotas — `/catalog` sozinho não encaminha `/catalog/categories`.
+ * GET com Accept HTML continua no Angular (vitrine, busca, etc.).
  */
 export default {
-  '/auth': {
+  '/auth/**': {
     target: 'http://localhost:3000',
     secure: false,
     changeOrigin: true,
@@ -13,7 +15,7 @@ export default {
       return undefined;
     },
   },
-  '/catalog': {
+  '/catalog/**': {
     target: 'http://localhost:3000',
     secure: false,
     changeOrigin: true,
@@ -24,7 +26,7 @@ export default {
       return undefined;
     },
   },
-  '/cart': {
+  '/cart/**': {
     target: 'http://localhost:3000',
     secure: false,
     changeOrigin: true,
