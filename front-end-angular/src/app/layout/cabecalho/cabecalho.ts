@@ -1,3 +1,4 @@
+import { HttpClient } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -11,7 +12,12 @@ import {
   of,
   switchMap,
 } from 'rxjs';
-import { Sessao } from '../../core/sessao/sessao';
+import {
+  rotaContextoDisponivel,
+  selecionarContextoSessao,
+} from '../../core/sessao/contexto-sessao';
+import { ContextoSessao, Sessao } from '../../core/sessao/sessao';
+import { mensagemDeErro } from '../../features/autenticacao/acesso';
 import { CarrinhoService } from '../../features/checkout/carrinho/carrinho.service';
 import { CatalogoService } from '../../features/catalogo/catalogo.service';
 import { Produto } from '../../features/catalogo/produto.model';
@@ -26,6 +32,7 @@ import { MoedaPipe } from '../../shared/formatacao/formatacao';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Cabecalho {
+  private readonly http = inject(HttpClient);
   private readonly sessao = inject(Sessao);
   private readonly router = inject(Router);
   private readonly catalogo = inject(CatalogoService);
@@ -37,6 +44,21 @@ export class Cabecalho {
     () => this.sessao.usuario()?.fullName.trim().split(/\s+/)[0] ?? '',
   );
 
+  protected readonly ehAdministrador = computed(() => this.sessao.usuario()?.role === 'ADMIN');
+
+  protected readonly contextoAtual = this.sessao.contexto;
+
+  protected readonly mostrarIrParaAdmin = computed(
+    () => this.ehAdministrador() && this.contextoAtual() !== 'ADMIN',
+  );
+
+  protected readonly mostrarVoltarParaLoja = computed(
+    () => this.ehAdministrador() && this.contextoAtual() === 'ADMIN',
+  );
+
+  /** Carrinho só na loja com perfil de cliente (contexto STORE). */
+  protected readonly mostrarCarrinho = computed(() => this.contextoAtual() === 'STORE');
+
   protected readonly itensCarrinho = inject(CarrinhoService).quantidadeItens;
 
   protected readonly rotuloCarrinho = computed(() => {
@@ -45,6 +67,9 @@ export class Cabecalho {
   });
 
   protected readonly saindo = signal(false);
+  protected readonly trocandoContexto = signal<ContextoSessao | null>(null);
+  protected readonly avisoContexto = signal<string | null>(null);
+  protected readonly erroContexto = signal<string | null>(null);
   protected readonly sugestoes = signal<Produto[]>([]);
   protected readonly mostrarSugestoes = signal(false);
   protected readonly carregandoSugestoes = signal(false);
@@ -148,8 +173,34 @@ export class Cabecalho {
     this.saindo.set(true);
     this.sessao.sair().subscribe(() => {
       this.saindo.set(false);
-      // Mesmo destino que o back devolve no logout (redirectTo).
-      this.router.navigate(['/auth/login']);
+      void this.router.navigate(['/catalog/home']);
+    });
+  }
+
+  protected trocarContexto(contexto: ContextoSessao): void {
+    if (this.trocandoContexto() || !this.sessao.token()) {
+      return;
+    }
+    this.trocandoContexto.set(contexto);
+    this.erroContexto.set(null);
+    this.avisoContexto.set(null);
+
+    selecionarContextoSessao(this.http, this.sessao, contexto).subscribe({
+      next: ({ redirectTo }) => {
+        this.trocandoContexto.set(null);
+        if (rotaContextoDisponivel(redirectTo)) {
+          void this.router.navigateByUrl(redirectTo);
+        } else {
+          // TODO: navegar para redirectTo quando as telas do painel existirem.
+          this.avisoContexto.set(
+            'Você entrou no painel, mas as telas administrativas ainda não existem.',
+          );
+        }
+      },
+      error: (erro: unknown) => {
+        this.trocandoContexto.set(null);
+        this.erroContexto.set(mensagemDeErro(erro, 'Não foi possível trocar o perfil.'));
+      },
     });
   }
 }

@@ -160,6 +160,11 @@
   background: var(--achei-areia);
 }
 
+.cabecalho__link:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 .cabecalho__link--ativo {
   color: var(--achei-urucum);
   font-weight: 600;
@@ -221,6 +226,22 @@
 .cabecalho button:focus-visible {
   outline: 2px solid var(--achei-urucum);
   outline-offset: 2px;
+}
+
+.cabecalho__contexto-aviso {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--achei-areia);
+  color: var(--achei-cacau);
+  font-size: 13px;
+  text-align: center;
+}
+
+.cabecalho__contexto-aviso--erro {
+  background: rgb(194 68 28 / 12%);
+  color: var(--achei-urucum);
 }
 
 /* No celular, "Meus pedidos", "Sair" e a saudação viram só ícone. */

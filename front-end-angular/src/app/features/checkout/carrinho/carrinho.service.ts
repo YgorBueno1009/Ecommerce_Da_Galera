@@ -9,6 +9,7 @@ export interface ItemCarrinho {
   slug: string;
   nome: string;
   sku: string;
+  imagemUrl?: string | null;
   precoUnitario: number;
   quantidade: number;
   estoque: number;
@@ -116,7 +117,12 @@ export class CarrinhoService {
     const itens = existente
       ? atual.map((item) =>
           item.produtoId === produto.id
-            ? { ...item, quantidade: proximaQuantidade, estoque: produto.estoque }
+            ? {
+                ...item,
+                quantidade: proximaQuantidade,
+                estoque: produto.estoque,
+                imagemUrl: produto.imagemUrl ?? item.imagemUrl ?? null,
+              }
             : item,
         )
       : [
@@ -126,6 +132,7 @@ export class CarrinhoService {
             slug: produto.slug,
             nome: produto.nome,
             sku: produto.sku,
+            imagemUrl: produto.imagemUrl ?? null,
             precoUnitario: produto.preco,
             quantidade: proximaQuantidade,
             estoque: produto.estoque,

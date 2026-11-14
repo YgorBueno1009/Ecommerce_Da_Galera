@@ -4,6 +4,7 @@ import { Sessao } from '../../../core/sessao/sessao';
 import { EtapasCheckout } from '../../../shared/etapas-checkout/etapas-checkout';
 import { MoedaPipe } from '../../../shared/formatacao/formatacao';
 import { ResumoCompra } from '../resumo-compra/resumo-compra';
+import { aoErroImagemProduto, urlImagemProduto } from '../../catalogo/imagem-produto';
 import { CarrinhoService, ItemCarrinho } from './carrinho.service';
 
 @Component({
@@ -25,6 +26,12 @@ export class Carrinho {
   protected remover(item: ItemCarrinho): void {
     this.carrinho.remover(item.produtoId);
   }
+
+  protected imagemItem(item: ItemCarrinho): string {
+    return urlImagemProduto({ slug: item.slug, imagemUrl: item.imagemUrl }, 160, 160);
+  }
+
+  protected readonly aoErroImagemProduto = aoErroImagemProduto;
 
   /** Sem login, entra primeiro e volta direto para a entrega. */
   protected continuar(): void {

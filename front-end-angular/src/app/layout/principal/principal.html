@@ -1,6 +1,8 @@
 <div class="principal">
   <app-cabecalho />
-  <app-barra-categorias />
+  @if (mostrarBarraCategorias()) {
+    <app-barra-categorias />
+  }
 
   <main class="principal__conteudo">
     <router-outlet />
