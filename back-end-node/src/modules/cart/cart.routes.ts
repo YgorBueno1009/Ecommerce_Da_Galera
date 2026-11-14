@@ -10,6 +10,7 @@ interface CartItemRow extends QueryResultRow {
   name: string;
   sku: string;
   price: string | number;
+  imagemUrl: string | null;
   quantity: number;
   availableStock: number;
 }
@@ -19,6 +20,7 @@ interface CartItemResponse {
   slug: string;
   nome: string;
   sku: string;
+  imagemUrl: string | null;
   precoUnitario: number;
   quantidade: number;
   estoque: number;
@@ -47,6 +49,7 @@ cartRoutes.get("/", async (request, response, next) => {
          p.name,
          p.sku::text AS sku,
          p.base_price::text AS price,
+         NULLIF(TRIM(p.attributes->>'imagemUrl'), '') AS "imagemUrl",
          ci.quantity,
          CASE
            WHEN p.is_active AND p.deleted_at IS NULL
@@ -280,6 +283,7 @@ function toCartItemResponse(row: CartItemRow): CartItemResponse {
     slug: row.slug,
     nome: row.name,
     sku: row.sku,
+    imagemUrl: row.imagemUrl,
     precoUnitario: Number(row.price),
     quantidade: Number(row.quantity),
     estoque: Number(row.availableStock),

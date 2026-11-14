@@ -28,7 +28,7 @@ app.use((request, response, next) => {
     const route = request.route
       ? `${prefix ?? ""}${String(request.route.path)}`
       : "unmatched";
-    const status = `${response.statusCode} ${durationMs.toFixed(1)}ms`;
+    const status = `${coloredStatus(response.statusCode)} ${durationMs.toFixed(1)}ms`;
     const termination = aborted ? " aborted" : "";
     console.info(`[HTTP] ${request.method} ${route} ${status}${termination}`);
   };
@@ -94,5 +94,24 @@ const errorHandler: ErrorRequestHandler = (
 };
 
 app.use(errorHandler);
+
+function coloredStatus(statusCode: number): string {
+  if (!process.stdout.isTTY || process.env.NO_COLOR !== undefined) {
+    return String(statusCode);
+  }
+
+  const color =
+    statusCode >= 500
+      ? "\u001b[1;31m"
+      : statusCode >= 400
+        ? "\u001b[31m"
+        : statusCode >= 300
+          ? "\u001b[33m"
+          : statusCode >= 200
+            ? "\u001b[32m"
+            : "\u001b[36m";
+
+  return `${color}${statusCode}\u001b[0m`;
+}
 
 export { app };

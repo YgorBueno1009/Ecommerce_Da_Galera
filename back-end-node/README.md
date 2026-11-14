@@ -42,6 +42,8 @@ Todos os JWTs de sessão incluem `jti`. `POST /auth/logout` recebe o token em `A
 
 Em desenvolvimento/teste, `POST /auth/forgot` recebe `{ "email": "cliente@exemplo.com" }` e responde `200` com uma mensagem genérica, sem revelar se a conta existe. O link é enviado ao console; o token aleatório não é um JWT, somente seu hash SHA-256 é armazenado e expira em 15 minutos. Em produção, a rota responde `503` até haver um serviço de entrega de e-mail configurado.
 
+Infra (PostgreSQL, `CORS_ORIGIN`, proxy dev e Nginx em produção): [`docs/infra-recuperacao-senha.md`](../docs/infra-recuperacao-senha.md). Verificação do banco: `node scripts/verify-password-reset-infra.mjs`.
+
 `POST /auth/reset/:token` recebe `{ "password": "...", "confirmPassword": "..." }`, valida as mesmas regras de senha do cadastro, atualiza o hash BCrypt e invalida o token na mesma transação. Token inválido, expirado ou já usado retorna `400` com `redirectTo: "/auth/forgot"`; sucesso retorna `200` com `redirectTo: "/auth/login"`.
 
 ## Executar
@@ -58,9 +60,11 @@ npm run dev
 
 A API verifica a conexão com PostgreSQL ao iniciar e escuta na porta `PORT` (3000 por padrão). Para compilar e executar em produção, use `npm run build` e `npm start`. `npm test` executa os testes de validação do cadastro, login, contexto, logout e recuperação de senha.
 
-Cada chamada HTTP é registrada no console com método, rota, status e duração. Os logs usam o padrão da rota (sem valores de parâmetros) e não incluem query string nem corpo da requisição.
+Cada chamada HTTP é registrada no console com método, rota, status e duração. Os logs usam o padrão da rota (sem valores de parâmetros) e não incluem query string nem corpo da requisição. Em terminais interativos, 2xx aparece em verde, 3xx em amarelo, 4xx em vermelho e 5xx em vermelho negrito; a variável `NO_COLOR` desativa as cores.
 
 Se o schema já estiver instalado, aplique `src/database/001-redact-password-hash-from-audit.sql`, `src/database/002-password-reset-tokens.sql`, `src/database/003-revoked-tokens.sql` e `src/database/004-shopping-cart.sql`. O trigger registra as alterações dos usuários sem incluir `password_hash` nos novos snapshots; essa alteração não remove hashes que eventualmente já estejam em logs antigos.
+
+Para popular categorias, produtos, estoque e um cliente demo com os mesmos dados do mock do Angular, execute `npm run db:seed` ou aplique `src/database/005-mock-catalog-seed.sql` com o `psql` (idempotente). Credenciais do cliente demo: `cliente.demo@exemplo.com` / `SenhaDemo123!`.
 
 ## Limites entre serviços
 

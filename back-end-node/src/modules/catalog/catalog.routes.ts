@@ -8,6 +8,7 @@ interface ProductRow extends QueryResultRow {
   slug: string;
   sku: string;
   name: string;
+  description: string | null;
   price: string | number;
   category: string;
   attributes: Record<string, unknown>;
@@ -25,6 +26,7 @@ interface ProductResponse {
   slug: string;
   sku: string;
   nome: string;
+  descricao: string | null;
   preco: number;
   categoria: string;
   oferta: boolean;
@@ -33,6 +35,7 @@ interface ProductResponse {
   cor: string | null;
   tamanho: string | null;
   fichaTecnica: { rotulo: string; valor: string }[];
+  imagemUrl: string | null;
 }
 
 const productSelect = `
@@ -41,6 +44,7 @@ const productSelect = `
     p.slug::text AS slug,
     p.sku::text AS sku,
     p.name,
+    p.description,
     p.base_price::text AS price,
     c.slug::text AS category,
     p.attributes,
@@ -180,6 +184,7 @@ function toProductResponse(row: ProductRow): ProductResponse {
     "cor",
     "tamanho",
     "fichaTecnica",
+    "imagemUrl",
   ]);
   const fichaTecnica = Array.isArray(attributes.fichaTecnica)
     ? attributes.fichaTecnica.flatMap((item) => {
@@ -202,11 +207,18 @@ function toProductResponse(row: ProductRow): ProductResponse {
           valor: typeof value === "string" ? value : JSON.stringify(value),
         }));
 
+  /** Coluna `ecommerce.products.description` (não vem de `attributes`). */
+  const descricao =
+    typeof row.description === "string" && row.description.trim()
+      ? row.description.trim()
+      : null;
+
   return {
     id: row.id,
     slug: row.slug,
     sku: row.sku,
     nome: row.name,
+    descricao,
     preco: Number(row.price),
     categoria: row.category,
     oferta: attributes.oferta === true || attributes.oferta === "true",
@@ -215,6 +227,7 @@ function toProductResponse(row: ProductRow): ProductResponse {
     cor: stringAttribute(attributes.cor),
     tamanho: stringAttribute(attributes.tamanho),
     fichaTecnica,
+    imagemUrl: stringAttribute(attributes.imagemUrl),
   };
 }
 
